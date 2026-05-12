@@ -1,0 +1,41 @@
+name: Email Agent
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: email-agent
+  cancel-in-progress: false
+
+jobs:
+  process-emails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run agent
+        env:
+          REAMAZE_BRAND: ${{ secrets.REAMAZE_BRAND }}
+          REAMAZE_LOGIN_EMAIL: ${{ secrets.REAMAZE_LOGIN_EMAIL }}
+          REAMAZE_API_TOKEN: ${{ secrets.REAMAZE_API_TOKEN }}
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+          SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TIMEZONE: America/Mexico_City
+          DRY_RUN: "false"
+        run: python -m src.main
