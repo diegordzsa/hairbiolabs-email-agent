@@ -94,12 +94,19 @@ def _paginate(path: str, key: str, params: dict | None = None, max_pages: int = 
 def _fetch_staff_info() -> tuple[set[str], set[str]]:
     emails: set[str] = set()
     names: set[str] = set()
-    staff_list = _paginate("/staff", "staff", max_pages=20)
-    for s in staff_list:
-        if s.get("email"):
-            emails.add(s["email"].lower())
-        if s.get("name"):
-            names.add(s["name"].lower())
+    try:
+        staff_list = _paginate("/staff", "staff", max_pages=20)
+        for s in staff_list:
+            if s.get("email"):
+                emails.add(s["email"].lower())
+            if s.get("name"):
+                names.add(s["name"].lower())
+    except Exception as exc:
+        logger.warning("Could not fetch /staff endpoint (%s), using fallback", exc)
+
+    if config.REAMAZE_LOGIN_EMAIL:
+        emails.add(config.REAMAZE_LOGIN_EMAIL.lower())
+    emails.update(e.lower() for e in config.STAFF_EMAILS)
     emails.update(e.lower() for e in config.CHANNEL_INBOX_EMAILS)
     logger.info("Loaded %d staff emails, %d staff names", len(emails), len(names))
     return emails, names

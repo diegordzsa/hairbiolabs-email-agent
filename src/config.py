@@ -57,6 +57,12 @@ CHANNEL_INBOX_EMAILS = {
     "contacto@hairbiolabs.com",
 }
 
+STAFF_EMAILS = {
+    e.strip().lower()
+    for e in os.environ.get("STAFF_EMAILS", "").split(",")
+    if e.strip()
+}
+
 NOTIFICATION_SENDERS = {
     "no-reply@merchanto.org",
     "no-reply@klaviyo.com",
