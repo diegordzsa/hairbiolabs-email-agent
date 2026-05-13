@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Reamaze API ---
-REAMAZE_BRAND = os.environ.get("REAMAZE_BRAND", "hairbiolabs")
+REAMAZE_BRAND = os.environ.get("REAMAZE_BRAND", "hair-biolabs")
 REAMAZE_LOGIN_EMAIL = os.environ.get("REAMAZE_LOGIN_EMAIL", "")
 REAMAZE_API_TOKEN = os.environ.get("REAMAZE_API_TOKEN", "")
 
