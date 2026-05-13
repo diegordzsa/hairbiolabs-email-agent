@@ -32,8 +32,7 @@ def process_conversation(slug: str) -> dict[str, Any]:
         logger.info("Processing %s from %s: %s", slug, conv_data["from_email"], conv_data["subject"])
 
         if not conv_data["body"]:
-            logger.warning("No customer message body found in %s, skipping", slug)
-            reamaze_client.add_tag(slug, config.PROCESSED_TAG)
+            logger.info("No customer message in %s, skipping (not tagging)", slug)
             return {"success": True}
 
         classification = claude_client.classify(conv_data["subject"], conv_data["body"])

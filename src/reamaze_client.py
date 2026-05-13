@@ -171,14 +171,15 @@ def _classify_message(msg: dict, staff_emails: set[str], staff_names: set[str]) 
 # ---------------------------------------------------------------------------
 
 def list_unprocessed_conversations(lookback_minutes: int | None = None) -> list[dict]:
-    """Fetch unresolved conversations where the last message is from a real customer."""
+    """Fetch recent unresolved conversations not yet processed by the agent."""
     if lookback_minutes is None:
         lookback_minutes = config.LOOKBACK_MINUTES
 
-    staff_emails, staff_names = _get_staff_info()
+    from datetime import datetime, timedelta, timezone
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
 
     conversations = _paginate("/conversations", "conversations",
-                              params={"filter[status]": "unresolved"}, max_pages=10)
+                              params={"filter[status]": "unresolved"}, max_pages=3)
     logger.info("Fetched %d unresolved conversations", len(conversations))
 
     result: list[dict] = []
@@ -188,32 +189,24 @@ def list_unprocessed_conversations(lookback_minutes: int | None = None) -> list[
 
         tag_list = [t.lower() for t in (conv.get("tag_list") or [])]
         if config.PROCESSED_TAG in tag_list:
-            logger.info("Skipping %s — already tagged ai-processed", slug)
             continue
 
-        messages = conv.get("message", []) if isinstance(conv.get("message"), list) else []
-        if not messages:
-            logger.info("Skipping %s — no messages found", slug)
-            continue
+        updated_at = conv.get("updated_at") or conv.get("created_at") or ""
+        if updated_at:
+            try:
+                conv_time = date_parser.parse(updated_at)
+                if conv_time < cutoff:
+                    continue
+            except (ValueError, TypeError):
+                pass
 
-        last_msg = messages[-1]
-        sender_email = _msg_sender_email(last_msg)
-        sender_name = _msg_sender_name(last_msg)
-        visibility = last_msg.get("visibility")
-        classification = _classify_message(last_msg, staff_emails, staff_names)
-        logger.info(
-            "Conv %s (%s): last_sender=%s, name=%s, visibility=%s, classified=%s",
-            slug, subject, sender_email, sender_name, visibility, classification,
-        )
-        if classification != "customer":
-            continue
-
+        logger.info("Candidate: %s (%s)", slug, subject)
         result.append({
             "slug": slug,
             "subject": subject,
         })
 
-    logger.info("Found %d unprocessed customer conversations", len(result))
+    logger.info("Found %d candidate conversations within %d-min window", len(result), lookback_minutes)
     return result
 
 
