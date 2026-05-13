@@ -183,21 +183,34 @@ def list_unprocessed_conversations(lookback_minutes: int | None = None) -> list[
 
     result: list[dict] = []
     for conv in conversations:
+        slug = conv.get("slug", "?")
+        subject = conv.get("subject", "(no subject)")
+
         tag_list = [t.lower() for t in (conv.get("tag_list") or [])]
         if config.PROCESSED_TAG in tag_list:
+            logger.info("Skipping %s — already tagged ai-processed", slug)
             continue
 
         messages = conv.get("message", []) if isinstance(conv.get("message"), list) else []
         if not messages:
+            logger.info("Skipping %s — no messages found", slug)
             continue
 
         last_msg = messages[-1]
-        if _classify_message(last_msg, staff_emails, staff_names) != "customer":
+        sender_email = _msg_sender_email(last_msg)
+        sender_name = _msg_sender_name(last_msg)
+        visibility = last_msg.get("visibility")
+        classification = _classify_message(last_msg, staff_emails, staff_names)
+        logger.info(
+            "Conv %s (%s): last_sender=%s, name=%s, visibility=%s, classified=%s",
+            slug, subject, sender_email, sender_name, visibility, classification,
+        )
+        if classification != "customer":
             continue
 
         result.append({
-            "slug": conv["slug"],
-            "subject": conv.get("subject", "(no subject)"),
+            "slug": slug,
+            "subject": subject,
         })
 
     logger.info("Found %d unprocessed customer conversations", len(result))
