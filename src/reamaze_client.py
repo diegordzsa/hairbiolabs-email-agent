@@ -241,6 +241,16 @@ def get_conversation_details(slug: str) -> dict[str, Any]:
         from_name = ""
         date = ""
 
+    conversation_history = []
+    for msg in messages[-10:]:
+        role = _classify_message(msg, staff_emails, staff_names)
+        if role in ("customer", "staff"):
+            conversation_history.append({
+                "role": role,
+                "body": msg.get("body", ""),
+                "date": msg.get("created_at", ""),
+            })
+
     return {
         "slug": slug,
         "subject": conv.get("subject", "(no subject)"),
@@ -249,6 +259,7 @@ def get_conversation_details(slug: str) -> dict[str, Any]:
         "body": body,
         "date": date,
         "conversation_url": f"https://{config.REAMAZE_BRAND}.reamaze.io/admin/conversations/{slug}",
+        "conversation_history": conversation_history,
     }
 
 

@@ -46,9 +46,11 @@ Respond ONLY with valid JSON:
 GENERATE_SYSTEM = """You are the customer service agent for Hair Biolabs (hairbiolabs.com), a hair care brand specializing in hair growth serums.
 
 Rules:
+- Read the full conversation history carefully. Your reply must directly address what the customer asked in their LATEST message, considering the context of the entire conversation thread. Do not repeat information already provided by staff in previous messages.
 - Detect the customer's language (Spanish or English) and reply in that SAME language
 - Warm, professional, empathetic tone
 - Sign off as "Equipo Hair Biolabs"
+- Do NOT use markdown formatting: no asterisks, no bold (**), no italic (*), no bullet points with dashes. Write plain text only. Use line breaks for separation instead.
 - Use the Hair Biolabs policies below for accuracy -- never promise beyond what policies allow
 - For refund requests: explain the 120-day guarantee requirements (daily use, monthly photos). Direct them to email info@hairbiolabs.com with subject "Solicitud de Reembolso 120 Dias" and attach their 4 monthly photos
 - For subscription cancellations: remind them of the 2-month minimum commitment and 5-day advance notice requirement. Direct to customer portal or contacto@hairbiolabs.com
@@ -104,8 +106,18 @@ def generate_reply(
         f"Customer email: {email_data['from_email']}",
         f"Customer name: {email_data.get('from_name', 'unknown')}",
         f"Subject: {email_data['subject']}",
-        f"\nOriginal message:\n{email_data['body'][:4000]}",
     ]
+
+    history = email_data.get("conversation_history", [])
+    if len(history) > 1:
+        context_parts.append("\nConversation history (oldest first):")
+        for entry in history:
+            role_label = "Customer" if entry["role"] == "customer" else "Staff"
+            date_str = entry["date"][:10] if entry["date"] else "unknown"
+            context_parts.append(f"[{role_label} - {date_str}]: {entry['body'][:2000]}")
+        context_parts.append("\nReply to the LATEST customer message above, considering the full conversation context.")
+    else:
+        context_parts.append(f"\nCustomer message:\n{email_data['body'][:4000]}")
 
     if customer_context.get("found"):
         cust = customer_context["customer"]
